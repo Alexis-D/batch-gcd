@@ -10,7 +10,7 @@ real world keys.
 Wondering what was the proper way to parallelize such problems and ran into
 the Fork/Join idea from Doug Lea's paper, [A Java Fork/Join
 Framework](http://gee.cs.oswego.edu/dl/papers/fj.pdf). Batch GCD is a prime
-candidate for this kind of parallelization since the algorithm involves to
+candidate for this kind of parallelization since the algorithm involves two
 tree traversals.
 
 In order to check whether this works there's a simple `main` method which
