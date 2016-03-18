@@ -2,11 +2,15 @@ package com.github.alexisd.batchgcd;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import org.apache.commons.math3.primes.Primes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +19,6 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.io.Resources;
 
 public class BatchGCD {
@@ -51,55 +54,83 @@ public class BatchGCD {
     }
 
     /**
-     * Tries to factor a list of composite numbers using the batchGCD method above. Further checking is needed to check
-     * if some of those factors are also composite (or just use .isProbablePrime on each factors). Checking for trivial factors, e.g.
-     * all primes below 1.000.000 could be useful too.
+     * Tries to factor a list of composite numbers using the batchGCD method above. Further checking is needed to verify
+     * if some of those factors are also composite (e.g. using .isProbablePrime on each factors).
      *
      * @param numbers The numbers to factor.
      * @return A map of numbers that could be factored and the found factors.
      */
     public static Map<BigInteger, List<BigInteger>> factor(BigInteger[] numbers) {
         BigInteger[] gcds = batchGCD(numbers);
-        Map<BigInteger, List<BigInteger>> result = Maps.newHashMap();
-
-        for (int i = 0; i < numbers.length; ++i) {
+        LOGGER.info("Factoring using GCDs...");
+        Map<BigInteger, List<BigInteger>> result =  IntStream.range(0, numbers.length).parallel().mapToObj(i -> {
             BigInteger gcd = gcds[i];
             BigInteger number = numbers[i];
 
             if (gcd.equals(BigInteger.ONE)) {
-                continue;
+                return null;
             }
 
             // if the gcd is equal to the number itself, we revert back to the naive algorithm
             if (gcd.equals(number)) {
+                LOGGER.warn("Found a number that appears more than once!");
                 for (BigInteger k : numbers) {
                     BigInteger slowGCD = k.gcd(number);
 
                     if (!slowGCD.equals(number)) {
-                        result.put(number, Lists.newArrayList(slowGCD, number.divide(slowGCD)));
+                        return new AbstractMap.SimpleImmutableEntry<>(number, Lists.newArrayList(slowGCD, number.divide(slowGCD)));
                     }
                 }
 
-                continue;
+                return null;
             }
 
-            result.put(number, Lists.newArrayList(gcd, number.divide(gcd)));
-        }
+            return new AbstractMap.SimpleImmutableEntry<>(number, Lists.newArrayList(gcd, number.divide(gcd)));
+        }).filter(x -> x != null)
+        .map(e -> {
+            List<BigInteger> resultList = Lists.newArrayList();
+
+            for (BigInteger n : e.getValue()) {
+                if (n.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) == -1) {
+                    Primes.primeFactors(n.intValue())
+                        .stream()
+                        .map(BigInteger::valueOf)
+                        .collect(Collectors.toCollection(() -> resultList));
+                } else {
+                    resultList.add(n);
+                }
+            }
+
+            return new AbstractMap.SimpleImmutableEntry<>(e.getKey(), resultList);
+        }).collect(Collectors.toConcurrentMap(Map.Entry::getKey, Map.Entry::getValue));
+        LOGGER.info("Factored using GCDs...");
 
         return result;
     }
 
     public static void main(String[] args) throws IOException {
-        // read all the SSH keys from http://natmchugh.blogspot.co.uk/2015/06/batch-gcd-ssh-key-challenge.html
-        BigInteger[] numbers = new GzippedByteSource(Resources.asByteSource(Resources.getResource("10000_ssh_pub_keys.gz")))
-            .asCharSource(Charsets.UTF_8)
-            .readLines()
+//        // read all the SSH keys from http://natmchugh.blogspot.co.uk/2015/06/batch-gcd-ssh-key-challenge.html
+//        BigInteger[] numbers = new GzippedByteSource(Resources.asByteSource(Resources.getResource("10000_ssh_pub_keys.gz")))
+//            .asCharSource(Charsets.UTF_8)
+//            .readLines()
+//            .stream()
+//            .map(String::trim)
+//            .map(BatchGCD::parseSSHPublicKey)
+//            .toArray(BigInteger[]::new);
+
+        BigInteger[] numbers = Resources.readLines(Resources.getResource("certs/moduli"), Charsets.UTF_8)
             .stream()
-            .map(String::trim)
-            .map(BatchGCD::parseSSHPublicKey)
+            .map(modulus -> new BigInteger(modulus, 16))
             .toArray(BigInteger[]::new);
 
-        LOGGER.info("Factored primes:\n{}", Joiner.on("\n").withKeyValueSeparator("=").join(factor(numbers)));
+        Map<BigInteger, List<BigInteger>> factored = factor(numbers);
+        Map<BigInteger, String> prettyFactored = factored.entrySet()
+            .stream()
+            .map(e -> {
+                String joined = Joiner.on(" × ").join(e.getValue().stream().sorted().map(BigInteger::toString).iterator());
+                return new AbstractMap.SimpleImmutableEntry<>(e.getKey(), joined);
+            }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        LOGGER.info("Factored primes:\n{}", Joiner.on("\n").withKeyValueSeparator(" = ").join(prettyFactored));
     }
 
     /**
@@ -118,7 +149,7 @@ public class BatchGCD {
         // skip after e
         currentPosition += 4 + new  BigInteger(Arrays.copyOfRange(bytes, currentPosition, currentPosition+4)).intValue();
         int nSize = new BigInteger(Arrays.copyOfRange(bytes, currentPosition, currentPosition + 4)).intValue();
-        // skip to the begining of n
+        // skip to the beginning of n
         currentPosition +=4;
         return new BigInteger(Arrays.copyOfRange(bytes, currentPosition, currentPosition + nSize));
     }

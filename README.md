@@ -13,10 +13,16 @@ Framework](http://gee.cs.oswego.edu/dl/papers/fj.pdf). Batch GCD is a prime
 candidate for this kind of parallelization since the algorithm involves two
 tree traversals.
 
-In order to check whether this works there's a simple `main` method which
-solves [Nat McHugh's ssh key factoring
-challenge](http://natmchugh.blogspot.co.uk/2015/06/batch-gcd-ssh-key-challenge.html).
-Other than that the code is untested.
+In order to check whether this works there's a simple `main` method that can
+either solves [Nat McHugh's ssh key factoring
+challenge](http://natmchugh.blogspot.co.uk/2015/06/batch-gcd-ssh-key-challenge.html)
+or factor real world moduli from the [Sonar SSL certificates
+dataset](https://scans.io/study/sonar.ssl) (see:
+`./src/main/resources/certs/extract-moduli.sh` in order to download/extract
+some moduli yourself).
+
+Unit tests will be written one day, but so far it was more fun to play with
+real world moduli.
 
 If you're looking for more resources on Batch GCD or Fork Join, you might find
 those links helpful:
