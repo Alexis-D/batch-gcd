@@ -8,7 +8,7 @@ import java.util.concurrent.RecursiveTask;
 import com.google.common.base.Preconditions;
 
 class ProductTreeTask extends RecursiveTask<ProductTreeTask.ProductTreeNode> {
-    private static int DO_NOT_FORK_IF_LESS_THAN_THIS_ELEMENTS = 64;
+    private static int DO_NOT_FORK_IF_LESS_THAN_THIS_ELEMENTS = 1024;
 
     final BigInteger[] numbers;
     final int i;

@@ -7,7 +7,7 @@ import java.util.concurrent.RecursiveTask;
 import com.google.common.collect.ObjectArrays;
 
 public class RemainderTreeTask extends RecursiveTask<BigInteger[]> {
-    private static int DO_NOT_FORK_IF_LESS_THAN_THIS_BITS = 65536;
+    private static int DO_NOT_FORK_IF_LESS_THAN_THIS_BITS = 1_048_576; // 2**20
 
     final BigInteger n;
     final ProductTreeTask.ProductTreeNode root;
