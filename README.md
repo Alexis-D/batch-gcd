@@ -28,8 +28,8 @@ If you're looking for more resources on Batch GCD or Fork Join, you might find
 those links helpful:
 
 - [Factoring RSA Moduli. Part I.](http://windowsontheory.org/2012/05/15/979/)
-- [Beginner's Introduction to Java's ForkJoin Framework](Beginner's
-  Introduction to Java's ForkJoin Framework)
+- [Beginner's Introduction to Java's ForkJoin Framework](
+  https://homes.cs.washington.edu/~djg/teachingMaterials/spac/grossmanSPAC_forkJoinFramework.html)
 
 Running the project should be a matter of runing the following:
 
